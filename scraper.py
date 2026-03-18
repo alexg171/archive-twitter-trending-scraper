@@ -1,8 +1,9 @@
 import os
-import pandas as pd
+import sys
 import time
 import argparse
 import logging
+import pandas as pd
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -10,7 +11,12 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selectolax_parser import parse_with_selectolax # Ensure this filename is correct
 
-logging.basicConfig(filename='scraper.log', level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    handlers=[logging.FileHandler("scraper.log"), logging.StreamHandler(sys.stdout)],
+    force=True,
+)
 
 def get_headful_driver():
     chrome_options = Options()
@@ -20,7 +26,7 @@ def get_headful_driver():
     
     return webdriver.Chrome(options=chrome_options)
 
-def scrape_trending_page(url, date, driver, timestamp, out_dir="out"):
+def scrape_trending_page(url, date, driver, timestamp, out_dir="out", region="united-states"):
     driver.get(url)
     
     try:
@@ -34,9 +40,9 @@ def scrape_trending_page(url, date, driver, timestamp, out_dir="out"):
         
         if main_list and main_list[0]['Topic'] != '-':
             os.makedirs(out_dir, exist_ok=True)
-            pd.DataFrame(main_list).to_csv(f"{out_dir}/trending_{timestamp}.csv", index=False, mode='a', header=not os.path.exists(f"{out_dir}/trending_{timestamp}.csv"))
-            pd.DataFrame(most_tweeted).to_csv(f"{out_dir}/most_{timestamp}.csv", index=False, mode='a', header=not os.path.exists(f"{out_dir}/most_{timestamp}.csv"))
-            pd.DataFrame(longest_trending).to_csv(f"{out_dir}/longest_{timestamp}.csv", index=False, mode='a', header=not os.path.exists(f"{out_dir}/longest_{timestamp}.csv"))
+            pd.DataFrame(main_list).to_csv(f"{out_dir}/trending_{region}_{timestamp}.csv", index=False, mode='a', header=not os.path.exists(f"{out_dir}/trending_{region}_{timestamp}.csv"))
+            pd.DataFrame(most_tweeted).to_csv(f"{out_dir}/most_{region}_{timestamp}.csv", index=False, mode='a', header=not os.path.exists(f"{out_dir}/most_{region}_{timestamp}.csv"))
+            pd.DataFrame(longest_trending).to_csv(f"{out_dir}/longest_{region}_{timestamp}.csv", index=False, mode='a', header=not os.path.exists(f"{out_dir}/longest_{region}_{timestamp}.csv"))
             logging.info(f"SUCCESS: {date.strftime('%d-%m-%Y')}")
         else:
             logging.warning(f"NO DATA: {date.strftime('%d-%m-%Y')}")
@@ -63,7 +69,7 @@ if __name__ == "__main__":
         for date in date_range:
             formatted_date = date.strftime("%d-%m-%Y")
             url = f"https://archive.twitter-trending.com/{args.region}/{formatted_date}"
-            scrape_trending_page(url, date, driver, timestamp)
+            scrape_trending_page(url, date, driver, timestamp, out_dir=args.out_dir, region=args.region)
     finally:
         timestop = int(time.time())
         logging.info(f"Scraping completed in {timestop - timestamp} seconds.")
