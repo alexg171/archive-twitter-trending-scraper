@@ -2,12 +2,15 @@ import os
 import pandas as pd
 import time
 import argparse
+import logging
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selectolax_parser import parse_with_selectolax # Ensure this filename is correct
+
+logging.basicConfig(filename='scraper.log', level=logging.INFO)
 
 def get_headful_driver():
     chrome_options = Options()
@@ -34,32 +37,34 @@ def scrape_trending_page(url, date, driver, timestamp, out_dir="out"):
             pd.DataFrame(main_list).to_csv(f"{out_dir}/trending_{timestamp}.csv", index=False, mode='a', header=not os.path.exists(f"{out_dir}/trending_{timestamp}.csv"))
             pd.DataFrame(most_tweeted).to_csv(f"{out_dir}/most_{timestamp}.csv", index=False, mode='a', header=not os.path.exists(f"{out_dir}/most_{timestamp}.csv"))
             pd.DataFrame(longest_trending).to_csv(f"{out_dir}/longest_{timestamp}.csv", index=False, mode='a', header=not os.path.exists(f"{out_dir}/longest_{timestamp}.csv"))
-            print(f"Success for {date}")
+            logging.info(f"SUCCESS: {date.strftime('%d-%m-%Y')}")
         else:
-            print(f"Data was still dashes for {date}. You might need a longer wait or a scroll.")
+            logging.warning(f"NO DATA: {date.strftime('%d-%m-%Y')}")
 
     except Exception as e:
-        print(f"Error on {date}: {e}")
+        logging.error(f"ERROR: {date.strftime('%d-%m-%Y')}: {e}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--start_date", type=str, default="01-01-2019")
-    parser.add_argument("--end_date", type=str, default="01-02-2019")
+    parser.add_argument("--start_date", type=str, default="01-01-2019", help="Start date in MM-DD-YYYY format")
+    parser.add_argument("--end_date", type=str, default="01-02-2019", help="End date in MM-DD-YYYY format")
+    parser.add_argument("--region", type=str, default="united-states")
     parser.add_argument("--out_dir", type=str, default="out")
     args = parser.parse_args()
 
     date_range = pd.date_range(start=args.start_date, end=args.end_date)
     timestamp = int(time.time())
-    print(f"Starting scraping from {args.start_date} to {args.end_date} at timestamp {timestamp}")
+    
+    logging.info(f"Starting scraping from {args.start_date} to {args.end_date} at timestamp {timestamp}")
     
     driver = get_headful_driver()
     
     try:
         for date in date_range:
             formatted_date = date.strftime("%d-%m-%Y")
-            url = f"https://archive.twitter-trending.com/united-states/{formatted_date}"
+            url = f"https://archive.twitter-trending.com/{args.region}/{formatted_date}"
             scrape_trending_page(url, date, driver, timestamp)
     finally:
         timestop = int(time.time())
-        print(f"Scraping completed in {timestop - timestamp} seconds.")
+        logging.info(f"Scraping completed in {timestop - timestamp} seconds.")
         driver.quit()
