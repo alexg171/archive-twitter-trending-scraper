@@ -17,7 +17,7 @@ def get_headful_driver():
     
     return webdriver.Chrome(options=chrome_options)
 
-def scrape_trending_page(url, date, driver, timestamp):
+def scrape_trending_page(url, date, driver, timestamp, out_dir="out"):
     driver.get(url)
     
     try:
@@ -30,10 +30,10 @@ def scrape_trending_page(url, date, driver, timestamp):
         main_list, most_tweeted, longest_trending = parse_with_selectolax(rendered_html, date)
         
         if main_list and main_list[0]['Topic'] != '-':
-            os.makedirs("out", exist_ok=True)
-            pd.DataFrame(main_list).to_csv(f"out/trending_{timestamp}.csv", index=False, mode='a', header=not os.path.exists(f"out/trending_{timestamp}.csv"))
-            pd.DataFrame(most_tweeted).to_csv(f"out/most_{timestamp}.csv", index=False, mode='a', header=not os.path.exists(f"out/most_{timestamp}.csv"))
-            pd.DataFrame(longest_trending).to_csv(f"out/longest_{timestamp}.csv", index=False, mode='a', header=not os.path.exists(f"out/longest_{timestamp}.csv"))
+            os.makedirs(out_dir, exist_ok=True)
+            pd.DataFrame(main_list).to_csv(f"{out_dir}/trending_{timestamp}.csv", index=False, mode='a', header=not os.path.exists(f"{out_dir}/trending_{timestamp}.csv"))
+            pd.DataFrame(most_tweeted).to_csv(f"{out_dir}/most_{timestamp}.csv", index=False, mode='a', header=not os.path.exists(f"{out_dir}/most_{timestamp}.csv"))
+            pd.DataFrame(longest_trending).to_csv(f"{out_dir}/longest_{timestamp}.csv", index=False, mode='a', header=not os.path.exists(f"{out_dir}/longest_{timestamp}.csv"))
             print(f"Success for {date}")
         else:
             print(f"Data was still dashes for {date}. You might need a longer wait or a scroll.")
@@ -45,6 +45,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--start_date", type=str, default="01-01-2019")
     parser.add_argument("--end_date", type=str, default="01-02-2019")
+    parser.add_argument("--out_dir", type=str, default="out")
     args = parser.parse_args()
 
     date_range = pd.date_range(start=args.start_date, end=args.end_date)
